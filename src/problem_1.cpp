@@ -1,6 +1,10 @@
+/*
+ * Author:
+ * Date:
+ * Name:
+ */
+
 #include <iostream>
-#include <queue>
-using namespace std;
 
 enum Color { RED, BLACK };
 
@@ -8,178 +12,154 @@ class Node {
 public:
     int data;
     Color color;
+    Node* parent;
     Node* left;
     Node* right;
-    Node* parent;
 
-    Node(int data) {
-        this->data = data;
-        color = RED;
-        left = nullptr;
-        right = nullptr;
-        parent = nullptr;
-    }
+    Node(int value, Color c = RED, Node* p = nullptr, Node* l = nullptr, Node* r = nullptr)
+            : data(value), color(c), parent(p), left(l), right(r) {}
 };
 
 class RedBlackTree {
 private:
     Node* root;
 
-    void rotateLeft(Node* node) {
-        Node* rightChild = node->right;
-        node->right = rightChild->left;
-
-        if (rightChild->left != nullptr) {
-            rightChild->left->parent = node;
-        }
-
-        rightChild->parent = node->parent;
-
-        if (node->parent == nullptr) {
-            root = rightChild;
-        } else if (node == node->parent->left) {
-            node->parent->left = rightChild;
-        } else {
-            node->parent->right = rightChild;
-        }
-
-        rightChild->left = node;
-        node->parent = rightChild;
-    }
-
-    void rotateRight(Node* node) {
-        Node* leftChild = node->left;
-        node->left = leftChild->right;
-
-        if (leftChild->right != nullptr) {
-            leftChild->right->parent = node;
-        }
-
-        leftChild->parent = node->parent;
-
-        if (node->parent == nullptr) {
-            root = leftChild;
-        } else if (node == node->parent->left) {
-            node->parent->left = leftChild;
-        } else {
-            node->parent->right = leftChild;
-        }
-
-        leftChild->right = node;
-        node->parent = leftChild;
-    }
-
-    void fixViolation(Node* node) {
-        Node* parent = nullptr;
-        Node* grandparent = nullptr;
-
-        while (node != root && node->color != BLACK && node->parent->color == RED) {
-            parent = node->parent;
-            grandparent = node->parent->parent;
-
-            if (parent == grandparent->left) {
-                Node* uncle = grandparent->right;
-
-                if (uncle != nullptr && uncle->color == RED) {
-                    grandparent->color = RED;
-                    parent->color = BLACK;
-                    uncle->color = BLACK;
-                    node = grandparent;
-                } else {
-                    if (node == parent->right) {
-                        rotateLeft(parent);
-                        node = parent;
-                        parent = node->parent;
-                    }
-
-                    rotateRight(grandparent);
-                    swap(parent->color, grandparent->color);
-                    node = parent;
-                }
-            } else {
-                Node* uncle = grandparent->left;
-
-                if (uncle != nullptr && uncle->color == RED) {
-                    grandparent->color = RED;
-                    parent->color = BLACK;
-                    uncle->color = BLACK;
-                    node = grandparent;
-                } else {
-                    if (node == parent->left) {
-                        rotateRight(parent);
-                        node = parent;
-                        parent = node->parent;
-                    }
-
-                    rotateLeft(grandparent);
-                    swap(parent->color, grandparent->color);
-                    node = parent;
-                }
-            }
-        }
-
-        root->color = BLACK;
-    }
-
-    void printTreeUtil(Node* node, int space) {
-        if (node == nullptr) {
-            return;
-        }
-
-        space += 5;
-
-        printTreeUtil(node->right, space);
-
-        cout << endl;
-        for (int i = 5; i < space; i++) {
-            cout << " ";
-        }
-        cout << node->data << "(" << (node->color == RED ? "RED" : "BLACK") << ")" << endl;
-
-        printTreeUtil(node->left, space);
-    }
+    void rotateLeft(Node* x);
+    void rotateRight(Node* x);
+    void fixInsertion(Node* z);
+    void printTree(Node* root, int space);
 
 public:
-    RedBlackTree() {
-        root = nullptr;
+    RedBlackTree() : root(nullptr) {}
+
+    void Insert(int data);
+    void printTree();
+};
+
+void RedBlackTree::rotateLeft(Node* x) {
+    Node* y = x->right;
+    x->right = y->left;
+    if (y->left != nullptr) {
+        y->left->parent = x;
     }
+    y->parent = x->parent;
+    if (x->parent == nullptr) {
+        root = y;
+    } else if (x == x->parent->left) {
+        x->parent->left = y;
+    } else {
+        x->parent->right = y;
+    }
+    y->left = x;
+    x->parent = y;
+}
 
-    void Insert(int data) {
-        Node* newNode = new Node(data);
+void RedBlackTree::rotateRight(Node* y) {
+    Node* x = y->left;
+    y->left = x->right;
+    if (x->right != nullptr) {
+        x->right->parent = y;
+    }
+    x->parent = y->parent;
+    if (y->parent == nullptr) {
+        root = x;
+    } else if (y == y->parent->left) {
+        y->parent->left = x;
+    } else {
+        y->parent->right = x;
+    }
+    x->right = y;
+    y->parent = x;
+}
 
-        Node* current = root;
-        Node* parent = nullptr;
-
-        while (current != nullptr) {
-            parent = current;
-
-            if (data < current->data) {
-                current = current->left;
+void RedBlackTree::fixInsertion(Node* z) {
+    while (z != root && z->parent->color == RED) {
+        if (z->parent == z->parent->parent->left) {
+            Node* y = z->parent->parent->right;
+            if (y != nullptr && y->color == RED) {
+                z->parent->color = BLACK;
+                y->color = BLACK;
+                z->parent->parent->color = RED;
+                z = z->parent->parent;
             } else {
-                current = current->right;
+                if (z == z->parent->right) {
+                    z = z->parent;
+                    rotateLeft(z);
+                }
+                z->parent->color = BLACK;
+                z->parent->parent->color = RED;
+                rotateRight(z->parent->parent);
+            }
+        } else {
+            Node* y = z->parent->parent->left;
+            if (y != nullptr && y->color == RED) {
+                z->parent->color = BLACK;
+                y->color = BLACK;
+                z->parent->parent->color = RED;
+                z = z->parent->parent;
+            } else {
+                if (z == z->parent->left) {
+                    z = z->parent;
+                    rotateRight(z);
+                }
+                z->parent->color = BLACK;
+                z->parent->parent->color = RED;
+                rotateLeft(z->parent->parent);
             }
         }
+    }
+    root->color = BLACK;
+}
 
-        newNode->parent = parent;
+void RedBlackTree::Insert(int data) {
+    Node* z = new Node(data);
+    Node* y = nullptr;
+    Node* x = root;
 
-        if (parent == nullptr) {
-            root = newNode;
-        } else if (data < parent->data) {
-            parent->left = newNode;
+    while (x != nullptr) {
+        y = x;
+        if (z->data < x->data) {
+            x = x->left;
         } else {
-            parent->right = newNode;
+            x = x->right;
         }
-
-        fixViolation(newNode);
     }
 
-    void printTree() {
-        if (root == nullptr) {
-            cout << "Tree is empty." << endl;
-            return;
-        }
-
-        printTreeUtil(root, 0);
+    z->parent = y;
+    if (y == nullptr) {
+        root = z;
+    } else if (z->data < y->data) {
+        y->left = z;
+    } else {
+        y->right = z;
     }
-};
-      
+
+    fixInsertion(z);
+}
+
+void RedBlackTree::printTree() {
+    printTree(root, 0);
+}
+
+void RedBlackTree::printTree(Node* root, int space) {
+    if (root == nullptr) {
+        return;
+    }
+
+    space += 4;
+
+    printTree(root->right, space);
+
+    std::cout << std::endl;
+    for (int i = 4; i < space; i++) {
+        std::cout << " ";
+    }
+
+    if (root->color == RED) {
+        std::cout << root->data << "(RED)";
+    } else {
+        std::cout << root->data << "(BLACK)";
+    }
+
+    printTree(root->left, space);
+}
